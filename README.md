@@ -20,9 +20,11 @@ Upload any PNG, JPG, or WebP image, pick a source color and a target color, and 
 - **Single Pixel mode** — click any pixel to sample its exact color. Best for lossless images with flat colors.
 - **Tolerance control** — widens the net of source pixels matched for replacement. Has no effect on the target color — every matched pixel gets the exact same target color.
 - **Feather edges** — blends boundary pixels gradually instead of cutting sharply, producing a smooth natural-looking edge.
-- **Before / After toggle** — compare the original and the result at the same zoom level. Press `B` to toggle.
+- **Before / After toggle** — compare the original and the result at the same zoom level. Press `B` to toggle. Appears after the first replacement.
+- **Reset** — reverts the image back to the original, clearing any replacements made in the current session.
 - **Zoom and pan** — scroll to zoom, Space+drag to pan. FIT button fits the image to the available canvas.
-- **Draggable sidebar** — resize the sidebar to your preference.
+- **Image info** — on upload, the toolbar shows dimensions, total pixel count, and megapixels (e.g. `800 px height × 4200 px width · 3.4 MP (3,360,000 px)`).
+- **Status messages** — feedback on what the tool is doing appears in the toolbar above the canvas, close to the image it describes.
 - **No signup. No upload. No ads.**
 
 ---
@@ -30,13 +32,12 @@ Upload any PNG, JPG, or WebP image, pick a source color and a target color, and 
 ## How to use
 
 1. Drop or click to upload an image
-2. Switch to **Region Analyzer** (recommended for most images)
-3. Drag a selection box over the color region you want to replace
-4. Click **Apply suggested tolerance** to set the right threshold automatically
-5. Pick your target color using the color picker or hex input
-6. Click **Replace color**
-7. Use Before/After to check the result — adjust tolerance and re-apply if needed
-8. Click **Download PNG** to save
+2. Use **Region Analyzer** (recommended) — drag a selection box over the color region you want to replace
+3. Click **Apply suggested tolerance** to set the right threshold automatically
+4. Pick your target color using the color picker or hex input
+5. Click **Replace color**
+6. Use **Before / After** toggle (or press `B`) to compare — adjust tolerance and re-apply if needed
+7. Click **Reset** to undo and start over, or **Download PNG** to save
 
 ### Replacing multiple colors in one image
 
@@ -69,6 +70,12 @@ There is no enforced file size limit — the browser handles whatever you upload
 | 50 MP | 50,000,000 | ~763 MB |
 
 A warning is shown for images above **25 MP** — this is the scientifically derived threshold where peak RAM approaches 400 MB and constrained devices may begin to struggle. The tool does not block the upload; it informs and lets you proceed.
+
+---
+
+## Analytics
+
+This tool uses [GoatCounter](https://www.goatcounter.com/) for privacy-friendly pageview analytics. GoatCounter does not track individual users, does not use cookies, and does not require a GDPR consent notice. It only records aggregate pageview counts. The analytics script only loads when the page is served from the live GitHub Pages domain — it does not run locally or in any other environment.
 
 ---
 
