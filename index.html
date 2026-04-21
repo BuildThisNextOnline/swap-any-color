@@ -488,23 +488,27 @@
 
   <!-- CANVAS AREA -->
   <section class="canvas-area">
-    <div class="canvas-toolbar" style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;">
-      <div class="zoom-controls">
-        <button class="zoom-btn" onclick="zoomBy(-1)" title="Zoom out">−</button>
-        <span id="zoom-label">100%</span>
-        <button class="zoom-btn" onclick="zoomBy(1)" title="Zoom in">+</button>
-        <button class="zoom-btn" onclick="zoomReset()" title="Reset zoom" style="width:auto;padding:0 8px;font-size:0.65rem;letter-spacing:0.04em;">FIT</button>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span class="toolbar-label">Preview</span>
-        <div id="before-after" style="display:none;">
-          <button class="ba-pill" id="pill-before" onclick="showBefore()">Before</button>
-          <button class="ba-pill active after-pill" id="pill-after" onclick="showAfter()">After</button>
+    <div class="canvas-toolbar" style="display:flex;flex-direction:column;gap:0;padding:0;">
+      <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0.5rem 1.25rem;">
+        <div class="zoom-controls">
+          <button class="zoom-btn" onclick="zoomBy(-1)" title="Zoom out">−</button>
+          <span id="zoom-label">100%</span>
+          <button class="zoom-btn" onclick="zoomBy(1)" title="Zoom in">+</button>
+          <button class="zoom-btn" onclick="zoomReset()" title="Reset zoom" style="width:auto;padding:0 8px;font-size:0.65rem;letter-spacing:0.04em;">FIT</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="toolbar-label">Preview</span>
+          <div id="before-after" style="display:none;">
+            <button class="ba-pill" id="pill-before" onclick="showBefore()">Before</button>
+            <button class="ba-pill active after-pill" id="pill-after" onclick="showAfter()">After</button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:flex-end;">
+          <span id="img-info" style="flex-shrink:0;"></span>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:0.75rem;justify-content:flex-end;overflow:hidden;">
-        <span class="status-bar" id="status" style="text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
-        <span id="img-info" style="flex-shrink:0;"></span>
+      <div id="status-row" style="display:none;padding:0.2rem 1.25rem 0.4rem;border-top:0.5px solid var(--border);text-align:center;">
+        <span class="status-bar" id="status"></span>
       </div>
     </div>
     <div class="canvas-viewport" id="canvas-viewport">
@@ -561,10 +565,15 @@ function rgbToHex(r,g,b) {
 function isValidHex(h) { return /^#[0-9A-Fa-f]{6}$/.test(h); }
 function colorDist(r1,g1,b1,r2,g2,b2) { return Math.sqrt((r1-r2)**2+(g1-g2)**2+(b1-b2)**2); }
 
+let statusTimer = null;
 function setStatus(msg, type='') {
   const el = document.getElementById('status');
+  const row = document.getElementById('status-row');
   el.textContent = msg;
   el.className = 'status-bar' + (type ? ' '+type : '');
+  row.style.display = msg ? 'block' : 'none';
+  if (statusTimer) clearTimeout(statusTimer);
+  if (msg) statusTimer = setTimeout(() => setStatus(''), 4000);
 }
 
 /* ── ZOOM ── */
@@ -720,6 +729,7 @@ let dragStartScreen = null;
 
 imgEl.addEventListener('mousedown', e => {
   if (!origData || isPanning || spaceDown) return;
+  setStatus('');
   if (mode === 'region') {
     isDragging = true;
     dragStart = getImgCoords(e);
