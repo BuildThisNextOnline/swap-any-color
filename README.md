@@ -4,7 +4,7 @@
 
 A fully client-side tool to replace any color in an image with another color. Everything runs in your browser — your image never leaves your machine.
 
-🔗 **Live tool:** [buildthisnextonline.github.io/swap-any-color/swap-any-color.html](https://buildthisnextonline.github.io/swap-any-color/swap-any-color.html)
+🔗 **Live tool:** [buildthisnextonline.github.io/swap-any-color](https://buildthisnextonline.github.io/swap-any-color)
 
 ---
 
@@ -56,9 +56,24 @@ GIMP's color replacement workflow is unintuitive for this specific task. Online 
 - Tolerance maps 0–100 to the full RGB color distance range (0–441)
 - Region Analyzer samples pixels across the selected area, computes the average color and maximum spread, and suggests a tolerance that covers the full range with a 20% buffer
 - All processing happens via the Canvas API — no server, no external dependencies except Google Fonts
+- On upload, the toolbar displays the image dimensions, total pixel count, and megapixels (e.g. `800 px height × 4200 px width · 3.4 MP (3,360,000 px)`)
+
+### File size and memory
+
+There is no enforced file size limit — the browser handles whatever you upload. However, the Canvas API loads the entire image into memory as raw pixel data. The tool maintains up to four pixel arrays simultaneously (original, output, canvas backing store, displayed image), so peak RAM usage is approximately **W × H × 16 bytes**.
+
+| Image size | Total pixels | Peak RAM |
+|---|---|---|
+| 10 MP | 10,000,000 | ~153 MB |
+| 25 MP | 25,000,000 | ~381 MB |
+| 50 MP | 50,000,000 | ~763 MB |
+
+A warning is shown for images above **25 MP** — this is the scientifically derived threshold where peak RAM approaches 400 MB and constrained devices may begin to struggle. The tool does not block the upload; it informs and lets you proceed.
 
 ---
 
 ## License
 
-MIT — do whatever you want with it.
+[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+
+You are free to share and adapt this work for non-commercial purposes, as long as you give appropriate credit and distribute any derivatives under the same license.
