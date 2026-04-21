@@ -681,13 +681,19 @@ function loadFile(file) {
     document.getElementById('empty-state').style.display  = 'none';
     document.getElementById('checker-bg').style.display   = 'flex';
     document.getElementById('tool-controls').style.display= 'flex';
-    document.getElementById('img-info').textContent = `${img.naturalHeight} px height × ${img.naturalWidth} px width`;
+    const totalPx = img.naturalWidth * img.naturalHeight;
+    const mp = (totalPx / 1000000).toFixed(1);
+    document.getElementById('img-info').textContent = `${img.naturalHeight} px height × ${img.naturalWidth} px width · ${Number(mp) % 1 === 0 ? parseInt(mp) : mp} MP (${totalPx.toLocaleString()} px)`;
     document.getElementById('download-btn').disabled = true;
     lastBlob = null; suggestedTol = null; afterDataUrl = null; viewingBefore = false;
     document.getElementById('before-after').style.display = 'none';
     document.getElementById('variance-box').style.display = 'none';
     requestAnimationFrame(() => { requestAnimationFrame(zoomReset); });
-    setStatus('Image loaded. Click on the image to sample a color.', 'ok');
+    if (totalPx > 25000000) {
+      setStatus('Large image (' + mp + ' MP) — processing may be slow on older devices.', 'warn');
+    } else {
+      setStatus('Image loaded. Click on the image to sample a color.', 'ok');
+    }
     URL.revokeObjectURL(url);
   };
   img.src = url;
