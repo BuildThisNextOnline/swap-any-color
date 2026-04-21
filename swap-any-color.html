@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swap Any Color</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f0f0d'/%3E%3Ccircle cx='10' cy='16' r='6' fill='%23d4f064'/%3E%3Ccircle cx='22' cy='16' r='6' fill='%23e05a5a'/%3E%3Cellipse cx='16' cy='16' rx='3.5' ry='6' fill='%23b8a03c'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0d;
+    --bg2: #181816;
+    --bg3: #222220;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0ede6;
+    --text2: #8a8780;
+    --text3: #5a5855;
+    --accent: #d4f064;
+    --accent2: #a8c74a;
+    --radius: 10px;
+    --radius-lg: 16px;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 0.4rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-bottom: 0.5px solid var(--border);
+  }
+
+  .logo {
+    font-family: 'Instrument Serif', serif;
+    font-size: 1.35rem;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  .logo span { color: var(--accent); font-style: italic; }
+
+  .tagline {
+    font-size: 0.8rem;
+    color: var(--text3);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: var(--sidebar-w, 480px) 1fr;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    border-right: 0.5px solid var(--border);
+    padding: 0.6rem 1.25rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    position: relative;
+  }
+  #resize-handle {
+    position: absolute; top: 0; right: -3px; width: 6px; height: 100%;
+    cursor: col-resize; z-index: 10; background: transparent;
+  }
+  #resize-handle:hover::after, #resize-handle.dragging::after { background: var(--accent); opacity: 0.6; }
+  #resize-handle::after {
+    content: ''; position: absolute; top: 0; left: 2px;
+    width: 2px; height: 100%;
+    background: transparent; transition: background 0.15s;
+  }
+
+  .section-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 0.25rem;
+  }
+
+  /* ── DROP ZONE ── */
+  .drop-zone {
+    border: 1px dashed var(--border2);
+    border-radius: var(--radius-lg);
+    padding: 0.75rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    background: var(--bg2);
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(212,240,100,0.04);
+  }
+  .drop-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .drop-icon {
+    width: 28px; height: 28px; margin: 0 auto 0.4rem;
+    border: 1px solid var(--border2); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem;
+  }
+  .drop-title { font-size: 0.9rem; color: var(--text); margin-bottom: 0.3rem; font-weight: 400; }
+  .drop-sub { font-size: 0.75rem; color: var(--text3); }
+
+  /* ── MODE TABS ── */
+  .tabs {
+    display: flex;
+    background: var(--bg2);
+    border-radius: var(--radius);
+    padding: 3px;
+    gap: 3px;
+  }
+  .tab {
+    flex: 1; padding: 6px 10px; font-size: 0.75rem; font-family: 'DM Sans', sans-serif;
+    border-radius: 8px; border: none; cursor: pointer;
+    background: transparent; color: var(--text2); transition: all 0.15s;
+    font-weight: 400;
+  }
+  .tab.active { background: var(--bg3); color: var(--text); }
+
+  /* ── COLOR ROW ── */
+  .color-row {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .swatch-wrap {
+    width: 36px; height: 36px; border-radius: 8px;
+    border: 1px solid var(--border2); position: relative; overflow: hidden;
+    flex-shrink: 0; cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .swatch-wrap:hover { border-color: var(--border2); }
+  .swatch-wrap input[type=color] {
+    opacity: 0; position: absolute; inset: 0; width: 100%; height: 100%;
+    cursor: pointer; border: none; padding: 0;
+  }
+  .hex-wrap {
+    display: flex; align-items: center; flex: 1;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden; transition: border-color 0.15s;
+  }
+  .hex-wrap:focus-within { border-color: var(--border2); }
+  .hex-prefix {
+    padding: 0 3px 0 10px; font-family: 'DM Mono', monospace;
+    font-size: 0.8rem; color: var(--text3); user-select: none; flex-shrink: 0;
+  }
+  .hex-field {
+    flex: 1; background: transparent; border: none;
+    padding: 8px 8px 8px 0;
+    font-family: 'DM Mono', monospace; font-size: 0.8rem;
+    color: var(--text); outline: none; text-transform: uppercase; min-width: 0;
+  }
+
+  .arrow-icon {
+    color: var(--text3); font-size: 0.85rem; flex-shrink: 0; line-height: 1;
+  }
+
+  /* ── TOLERANCE ── */
+  .tol-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.3rem; }
+  .tol-value {
+    font-family: 'DM Mono', monospace; font-size: 0.85rem;
+    color: var(--accent); font-weight: 500;
+  }
+
+  input[type=range] {
+    width: 100%; -webkit-appearance: none; appearance: none;
+    height: 4px; border-radius: 2px;
+    background: var(--bg3); outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px;
+    border-radius: 50%; background: var(--accent); cursor: pointer;
+    border: 2px solid var(--bg);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--accent); cursor: pointer; border: 2px solid var(--bg);
+  }
+
+  /* ── CHECKBOX ── */
+  .check-row {
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+  }
+  input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+  .check-label { font-size: 0.8rem; color: var(--text2); }
+
+  /* ── VARIANCE BOX ── */
+  .variance-box {
+    background: var(--bg2); border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    padding: 0.75rem; display: none;
+  }
+  .var-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 0.5rem; }
+  .var-card {
+    background: var(--bg3); border-radius: 8px; padding: 8px 10px;
+  }
+  .var-card-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); margin-bottom: 3px; }
+  .var-card-val { font-family: 'DM Mono', monospace; font-size: 0.85rem; color: var(--text); font-weight: 500; }
+  .var-card-val.accent { color: var(--accent); }
+  .swatches-row { display: flex; gap: 3px; flex-wrap: wrap; margin-bottom: 0.75rem; }
+  .mini-swatch { width: 16px; height: 16px; border-radius: 4px; border: 0.5px solid rgba(255,255,255,0.1); }
+
+  /* ── BUTTONS ── */
+  .btn-primary {
+    width: 100%; padding: 8px; border-radius: var(--radius);
+    background: var(--accent); color: #1a1a14; font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem; font-weight: 500; border: none; cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    letter-spacing: 0.01em;
+  }
+  .btn-primary:hover { background: #c8e358; }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-primary:disabled { background: var(--bg3); color: var(--text3); cursor: not-allowed; transform: none; }
+
+  .btn-secondary {
+    width: 100%; padding: 8px; border-radius: var(--radius);
+    background: transparent; color: var(--text2);
+    border: 1px solid var(--border2); cursor: pointer;
+    font-family: 'DM Sans', sans-serif; font-size: 0.85rem;
+    transition: background 0.15s, color 0.15s; font-weight: 400;
+  }
+  .btn-secondary:hover { background: var(--bg2); color: var(--text); }
+  .btn-secondary:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .btn-ghost {
+    background: rgba(212,240,100,0.08); color: var(--accent);
+    border: 1px solid rgba(212,240,100,0.2); padding: 7px 12px;
+    border-radius: 8px; font-size: 0.75rem; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+    font-weight: 400;
+  }
+  .btn-ghost:hover { background: rgba(212,240,100,0.14); }
+
+  /* ── STATUS ── */
+  .status-bar {
+    font-size: 0.72rem; color: var(--text3);
+    line-height: 1.4; flex-shrink: 1;
+  }
+  .status-bar.ok  { color: var(--accent2); }
+  .status-bar.warn { color: #e8b84b; }
+
+  /* ── CANVAS AREA ── */
+  .canvas-area {
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+
+  .canvas-toolbar {
+    padding: 0.6rem 1.25rem;
+    border-bottom: 0.5px solid var(--border);
+    display: flex; align-items: center; gap: 0.75rem;
+    font-size: 0.75rem; color: var(--text3);
+    flex-shrink: 0; position: relative;
+  }
+  .toolbar-label { color: var(--text3); font-size: 0.75rem; }
+  #before-after {
+    display: none; align-items: center; gap: 2px;
+    background: var(--bg2); border-radius: 8px; padding: 3px;
+    border: 1px solid var(--border);
+  }
+  .ba-pill {
+    padding: 4px 10px; border-radius: 6px; border: none;
+    font-size: 0.72rem; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; transition: all 0.15s; font-weight: 400;
+    background: transparent; color: var(--text3);
+    letter-spacing: 0.02em;
+  }
+  .ba-pill.active { background: var(--bg3); color: var(--text); }
+  .ba-pill.active.after-pill { color: var(--accent); }
+  #img-info { font-family: 'DM Mono', monospace; color: var(--text3); font-size: 0.72rem; margin-left: auto; }
+  .zoom-controls { display: flex; align-items: center; gap: 4px; }
+  .zoom-btn {
+    width: 26px; height: 26px; border-radius: 6px;
+    border: 1px solid var(--border2); background: var(--bg2);
+    color: var(--text2); font-size: 0.85rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.1s, color 0.1s; line-height: 1;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .zoom-btn:hover { background: var(--bg3); color: var(--text); }
+  #zoom-label {
+    font-family: 'DM Mono', monospace; font-size: 0.72rem;
+    color: var(--accent); min-width: 38px; text-align: center;
+  }
+
+  .canvas-viewport {
+    flex: 1; overflow: hidden; display: flex;
+    align-items: center; justify-content: center;
+    position: relative;
+  }
+  #zoom-container {
+    transform-origin: center center;
+    transition: transform 0.05s ease-out;
+    cursor: grab;
+  }
+  #zoom-container.grabbing { cursor: grabbing; }
+
+  .checker-bg {
+    background-image:
+      linear-gradient(45deg, #222 25%, transparent 25%),
+      linear-gradient(-45deg, #222 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #222 75%),
+      linear-gradient(-45deg, transparent 75%, #222 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+    background-color: #1a1a18;
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  #preview-img {
+    display: block; border-radius: 6px;
+    object-fit: contain; user-select: none; -webkit-user-drag: none;
+  }
+
+  #preview-img.cursor-cross { cursor: crosshair; }
+  #preview-img.cursor-region { cursor: crosshair; }
+
+  #empty-state {
+    text-align: center;
+  }
+  .empty-icon {
+    width: 64px; height: 64px; border-radius: 50%;
+    border: 1px dashed var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; margin: 0 auto 1rem;
+    color: var(--text3);
+  }
+  .empty-title { font-size: 1rem; color: var(--text2); margin-bottom: 0.3rem; font-weight: 400; }
+  .empty-sub { font-size: 0.8rem; color: var(--text3); }
+
+  #sel-rect {
+    position: absolute;
+    border: 1.5px dashed rgba(212,240,100,0.8);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.5);
+    pointer-events: none; display: none;
+    border-radius: 3px;
+  }
+
+  canvas { display: none; }
+
+  .divider { height: 0.5px; background: var(--border); }
+
+  .hint { font-size: 0.72rem; color: var(--text3); line-height: 1.5; }
+
+  @media (max-width: 768px) {
+    main { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    .sidebar { border-right: none; border-bottom: 0.5px solid var(--border); max-height: 60vh; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="28" height="28" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
+    <rect width="32" height="32" rx="8" fill="#1a1a14"/>
+    <circle cx="10" cy="16" r="6" fill="#d4f064"/>
+    <circle cx="22" cy="16" r="6" fill="#e05a5a"/>
+    <ellipse cx="16" cy="16" rx="3.5" ry="6" fill="#b8a03c"/>
+  </svg>
+  <div class="logo">Swap <span>Any</span> Color</div>
+  <div class="tagline">Precise color replacement · no signup · no upload</div>
+</header>
+
+<main id="main-layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div id="resize-handle"></div>
+
+    <!-- Upload + desktop notice side by side -->
+    <div style="display:flex; gap:10px; align-items:stretch;">
+      <div style="flex:1; min-width:0;">
+        <div class="section-title">Image</div>
+        <div class="drop-zone" id="drop-zone">
+          <input type="file" id="file-in" accept="image/*">
+          <div class="drop-icon">↑</div>
+          <div class="drop-title">Drop or click to upload</div>
+          <div class="drop-sub">PNG · JPG · WebP</div>
+        </div>
+      </div>
+      <div id="mobile-banner" style="width:140px; flex-shrink:0; display:flex; align-items:center; background:rgba(212,240,100,0.07); border:1px solid rgba(212,240,100,0.2); border-radius:var(--radius); padding:8px 10px; margin-top:1.1rem;">
+        <p style="font-size:0.72rem; color:var(--accent2); line-height:1.5; margin:0;">For best results, use a desktop browser. Region selection and zoom require a mouse.</p>
+      </div>
+    </div>
+
+    <!-- Mode -->
+    <div id="tool-controls" style="display:none; display:flex; flex-direction:column; gap:0.75rem;">
+
+      <div>
+        <div class="section-title">Sampling mode</div>
+        <p class="hint" style="margin-bottom:0.4rem;">Most images — especially JPGs — don't have a single flat color. What looks like a solid white background is usually dozens of slightly-off whites due to compression.</p>
+        <div class="tabs" style="margin-bottom:0.5rem;">
+          <button class="tab active" id="btn-region" onclick="setMode('region')">Region Analyzer</button>
+          <button class="tab" id="btn-single" onclick="setMode('single')">Single Pixel</button>
+        </div>
+        <div id="mode-hint" class="hint"></div>
+      </div>
+
+      <!-- Variance result -->
+      <div class="variance-box" id="variance-box">
+        <div class="section-title" style="margin-bottom:0.6rem;">Region variance</div>
+        <div class="var-grid">
+          <div class="var-card"><div class="var-card-label">Pixels</div><div class="var-card-val" id="v-count">—</div></div>
+          <div class="var-card"><div class="var-card-label">Max spread</div><div class="var-card-val" id="v-max">—</div></div>
+          <div class="var-card" style="grid-column:1/-1"><div class="var-card-label">Suggested tolerance</div><div class="var-card-val accent" id="v-suggest">—</div></div>
+        </div>
+        <div class="swatches-row" id="swatches-row"></div>
+        <button class="btn-ghost" onclick="applySuggested()">Apply suggested tolerance →</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Source + Dest colors side by side -->
+      <div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:10px;">
+        <div>
+          <div class="section-title">Source color</div>
+          <div class="color-row">
+            <div class="swatch-wrap" id="src-swatch" style="background:#ffffff;">
+              <input type="color" id="src-picker" value="#ffffff">
+            </div>
+            <div class="hex-wrap"><span class="hex-prefix">#</span><input class="hex-field" id="src-hex" value="FFFFFF" maxlength="6" placeholder="RRGGBB"></div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title">Replace with</div>
+          <div class="color-row">
+            <div class="swatch-wrap" id="dst-swatch" style="background:#ff0000;">
+              <input type="color" id="dst-picker" value="#ff0000">
+            </div>
+            <div class="hex-wrap"><span class="hex-prefix">#</span><input class="hex-field" id="dst-hex" value="FF0000" maxlength="6" placeholder="RRGGBB"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Tolerance -->
+      <div>
+        <div class="tol-header">
+          <div class="section-title" style="margin:0;">Tolerance</div>
+          <div class="tol-value" id="tol-val">0</div>
+        </div>
+        <input type="range" min="0" max="100" value="0" id="tolerance">
+        <div class="hint" style="margin-top:0.25rem;">0 = exact match &nbsp;·&nbsp; higher = catches similar shades</div>
+      </div>
+
+      <!-- Feather -->
+      <div>
+        <label class="check-row">
+          <input type="checkbox" id="anti-alias">
+          <span class="check-label">Feather edges</span>
+        </label>
+        <p class="hint" style="margin-top:0.25rem;">At the boundary between the replaced color and the rest of the image, pixels are blended gradually rather than cut sharply — producing a smooth, natural-looking edge instead of a hard line.</p>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Actions -->
+      <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border2); border-radius:var(--radius); padding:8px 10px;">
+        <p class="hint" style="margin:0;">Each session replaces one source color with one target color. To replace multiple source colors in one image, save the image after every source color replacement, and reload the image to change the next source color.</p>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <button class="btn-primary" onclick="applyReplace()">Replace color</button>
+        <button class="btn-secondary" id="download-btn" onclick="downloadResult()" disabled>Download PNG ↓</button>
+      </div>
+
+    </div>
+
+  </aside>
+
+  <!-- CANVAS AREA -->
+  <section class="canvas-area">
+    <div class="canvas-toolbar">
+      <div class="zoom-controls">
+        <button class="zoom-btn" onclick="zoomBy(-1)" title="Zoom out">−</button>
+        <span id="zoom-label">100%</span>
+        <button class="zoom-btn" onclick="zoomBy(1)" title="Zoom in">+</button>
+        <button class="zoom-btn" onclick="zoomReset()" title="Reset zoom" style="width:auto;padding:0 8px;font-size:0.65rem;letter-spacing:0.04em;">FIT</button>
+      </div>
+      <div style="position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;">
+        <span class="toolbar-label">Preview</span>
+        <div id="before-after" style="display:none;">
+          <button class="ba-pill" id="pill-before" onclick="showBefore()">Before</button>
+          <button class="ba-pill active after-pill" id="pill-after" onclick="showAfter()">After</button>
+        </div>
+      </div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:1rem;">
+        <span class="status-bar" id="status"></span>
+        <span id="img-info"></span>
+      </div>
+    </div>
+    <div class="canvas-viewport" id="canvas-viewport">
+      <div id="empty-state">
+        <div class="empty-icon">⬡</div>
+        <div class="empty-title">No image loaded</div>
+        <div class="empty-sub">Drop an image in the sidebar to begin</div>
+      </div>
+      <div id="zoom-container">
+        <div class="checker-bg" id="checker-bg" style="display:none;">
+          <div style="position:relative; display:inline-block;">
+            <img id="preview-img" src="" alt="Preview" class="cursor-cross">
+            <div id="sel-rect"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<canvas id="canvas"></canvas>
+<canvas id="out-canvas"></canvas>
+
+<script>
+let origData = null, lastBlob = null, mode = 'region';
+let origDataUrl = null, afterDataUrl = null, viewingBefore = false;
+let isDragging = false, dragStart = null, dragEnd = null, suggestedTol = null;
+
+/* ── ZOOM / PAN STATE ── */
+let zoomLevel = 1;
+const ZOOM_STEPS = [0.25,0.33,0.5,0.67,0.75,1,1.25,1.5,2,2.5,3,4,5,6,8];
+let zoomIdx = 5; // index of 1 in ZOOM_STEPS
+let panX = 0, panY = 0;
+let isPanning = false, panStart = null;
+
+const canvas   = document.getElementById('canvas');
+const outCanvas= document.getElementById('out-canvas');
+const ctx      = canvas.getContext('2d', {willReadFrequently: true});
+const outCtx   = outCanvas.getContext('2d');
+const imgEl    = document.getElementById('preview-img');
+const selRect  = document.getElementById('sel-rect');
+const zoomContainer = document.getElementById('zoom-container');
+const viewport = document.getElementById('canvas-viewport');
+
+/* ── UTILS ── */
+function hexToRgb(h) {
+  h = h.replace('#','');
+  if (h.length===3) h = h.split('').map(c=>c+c).join('');
+  return {r:parseInt(h.slice(0,2),16), g:parseInt(h.slice(2,4),16), b:parseInt(h.slice(4,6),16)};
+}
+function rgbToHex(r,g,b) {
+  return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('').toUpperCase();
+}
+function isValidHex(h) { return /^#[0-9A-Fa-f]{6}$/.test(h); }
+function colorDist(r1,g1,b1,r2,g2,b2) { return Math.sqrt((r1-r2)**2+(g1-g2)**2+(b1-b2)**2); }
+
+function setStatus(msg, type='') {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status-bar' + (type ? ' '+type : '');
+}
+
+/* ── ZOOM ── */
+function applyTransform() {
+  zoomContainer.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
+  const pct = zoomLevel * 100;
+  document.getElementById('zoom-label').textContent = (pct % 1 === 0 ? pct : pct.toFixed(1)) + '%';
+}
+
+function zoomBy(dir) {
+  zoomIdx = Math.max(0, Math.min(ZOOM_STEPS.length - 1, zoomIdx + dir));
+  zoomLevel = ZOOM_STEPS[zoomIdx];
+  applyTransform();
+}
+
+function zoomReset() {
+  panX = 0; panY = 0;
+  if (origData && canvas.width && canvas.height) {
+    const vw = viewport.clientWidth  - 64;
+    const vh = viewport.clientHeight - 64;
+    const fit = Math.min(1, vw / canvas.width, vh / canvas.height);
+    zoomLevel = Math.round(fit * 1000) / 1000;
+    zoomIdx = ZOOM_STEPS.reduce((best, s, i) =>
+      Math.abs(s - zoomLevel) < Math.abs(ZOOM_STEPS[best] - zoomLevel) ? i : best, 0);
+  } else {
+    zoomIdx = 5; zoomLevel = 1;
+  }
+  applyTransform();
+}
+
+viewport.addEventListener('wheel', e => {
+  if (!origData) return;
+  e.preventDefault();
+  const dir = e.deltaY < 0 ? 1 : -1;
+  zoomBy(dir);
+}, { passive: false });
+
+/* ── PAN (middle-mouse or space+drag or just drag when zoomed) ── */
+let spaceDown = false;
+document.addEventListener('keydown', e => { if (e.code === 'Space') { spaceDown = true; e.preventDefault(); } });
+document.addEventListener('keyup',   e => { if (e.code === 'Space') spaceDown = false; });
+
+viewport.addEventListener('mousedown', e => {
+  if (!origData) return;
+  // Pan: middle mouse, or space+any button, or zoomed in and not on image interactions
+  if (e.button === 1 || spaceDown || (zoomLevel > 1 && e.button === 0 && mode === 'single' && e.target !== imgEl)) {
+    isPanning = true;
+    panStart = { x: e.clientX - panX, y: e.clientY - panY };
+    zoomContainer.classList.add('grabbing');
+    e.preventDefault();
+  }
+});
+document.addEventListener('mousemove', e => {
+  if (!isPanning) return;
+  panX = e.clientX - panStart.x;
+  panY = e.clientY - panStart.y;
+  applyTransform();
+});
+document.addEventListener('mouseup', () => {
+  if (isPanning) { isPanning = false; zoomContainer.classList.remove('grabbing'); }
+});
+
+/* ── COLOR SYNC ── */
+function syncColor(side, hex, updatePicker=true, updateHex=true) {
+  if (!isValidHex(hex)) return;
+  document.getElementById(side+'-swatch').style.background = hex;
+  if (updatePicker) document.getElementById(side+'-picker').value = hex.toLowerCase();
+  if (updateHex)   document.getElementById(side+'-hex').value = hex.replace('#','').toUpperCase();
+}
+['src','dst'].forEach(side => {
+  document.getElementById(side+'-picker').addEventListener('input', function() {
+    syncColor(side, this.value, false, true);
+  });
+  document.getElementById(side+'-hex').addEventListener('input', function() {
+    let v = this.value.replace('#','');
+    if (/^[0-9A-Fa-f]{6}$/.test(v)) syncColor(side, '#'+v, true, false);
+  });
+});
+syncColor('src','#FFFFFF'); syncColor('dst','#FF0000');
+
+document.getElementById('tolerance').addEventListener('input', function() {
+  document.getElementById('tol-val').textContent = this.value;
+});
+
+setMode('region');
+
+/* ── MODE ── */
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-region').classList.toggle('active', m==='region');
+  document.getElementById('btn-single').classList.toggle('active', m==='single');
+  const hint = document.getElementById('mode-hint');
+  if (m === 'region') {
+    hint.innerHTML = '<strong style="color:var(--text2);font-weight:500;">Region Analyzer</strong> <span style="color:var(--accent2);font-size:0.68rem;">recommended</span><br>Drag over any part of the image to sample a region. The tool measures the spread of color shades across those pixels and recommends a tolerance value automatically.<br><br>Tolerance widens the net of source pixels included in the replacement — but has no effect on the target color. Every matched pixel gets the exact same target color you specify.';
+  } else {
+    hint.innerHTML = '<strong style="color:var(--text2);font-weight:500;">Single Pixel</strong><br>Use only if your image is lossless (PNG/SVG export) and you know the exact flat color you want to replace — one out of 16,777,216 possible colors. Click anywhere on the image to sample it.';
+  }
+  selRect.style.display = 'none';
+}
+
+/* ── FILE LOAD ── */
+function loadFile(file) {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    canvas.width  = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    ctx.drawImage(img, 0, 0);
+    origData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    origDataUrl = canvas.toDataURL('image/png');
+    imgEl.src = origDataUrl;
+    document.getElementById('empty-state').style.display  = 'none';
+    document.getElementById('checker-bg').style.display   = 'flex';
+    document.getElementById('tool-controls').style.display= 'flex';
+    document.getElementById('img-info').textContent = `${img.naturalHeight} px height × ${img.naturalWidth} px width`;
+    document.getElementById('download-btn').disabled = true;
+    lastBlob = null; suggestedTol = null; afterDataUrl = null; viewingBefore = false;
+    document.getElementById('before-after').style.display = 'none';
+    document.getElementById('variance-box').style.display = 'none';
+    requestAnimationFrame(() => { requestAnimationFrame(zoomReset); });
+    setStatus('Image loaded. Click on the image to sample a color.', 'ok');
+    URL.revokeObjectURL(url);
+  };
+  img.src = url;
+}
+
+document.getElementById('file-in').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+
+/* ── IMAGE COORDS (zoom-aware) ── */
+function getImgCoords(e) {
+  const r  = imgEl.getBoundingClientRect();
+  const sx = canvas.width  / imgEl.offsetWidth;
+  const sy = canvas.height / imgEl.offsetHeight;
+  return {
+    x: Math.max(0, Math.min(canvas.width-1,  Math.floor((e.clientX - r.left) * sx))),
+    y: Math.max(0, Math.min(canvas.height-1, Math.floor((e.clientY - r.top)  * sy)))
+  };
+}
+
+/* ── MOUSE ON IMAGE ── */
+let dragStartScreen = null;
+
+imgEl.addEventListener('mousedown', e => {
+  if (!origData || isPanning || spaceDown) return;
+  if (mode === 'region') {
+    isDragging = true;
+    dragStart = getImgCoords(e);
+    dragEnd = dragStart;
+    const r = imgEl.getBoundingClientRect();
+    dragStartScreen = { x: (e.clientX - r.left) / zoomLevel, y: (e.clientY - r.top) / zoomLevel };
+    selRect.style.display = 'block';
+    updateSelRect(e);
+    e.preventDefault();
+  }
+});
+imgEl.addEventListener('mousemove', e => {
+  if (!origData || !isDragging || mode !== 'region') return;
+  dragEnd = getImgCoords(e); updateSelRect(e);
+});
+imgEl.addEventListener('mouseup', e => {
+  if (!origData || isPanning || spaceDown) return;
+  if (mode === 'single') {
+    const {x,y} = getImgCoords(e);
+    const i = (y * canvas.width + x) * 4;
+    const d = origData.data;
+    const hex = rgbToHex(d[i], d[i+1], d[i+2]);
+    syncColor('src', hex);
+    setStatus('Sampled ' + hex + '. Set replacement color and click Replace.', 'ok');
+  } else if (isDragging) {
+    isDragging = false; dragEnd = getImgCoords(e); analyzeRegion();
+  }
+});
+imgEl.addEventListener('mouseleave', e => {
+  if (isDragging && mode === 'region') { isDragging = false; dragEnd = getImgCoords(e); analyzeRegion(); }
+});
+
+function updateSelRect(e) {
+  const r = imgEl.getBoundingClientRect();
+  const x1 = dragStartScreen.x;
+  const y1 = dragStartScreen.y;
+  const x2 = (e.clientX - r.left) / zoomLevel;
+  const y2 = (e.clientY - r.top)  / zoomLevel;
+  selRect.style.left   = Math.min(x1,x2) + 'px';
+  selRect.style.top    = Math.min(y1,y2) + 'px';
+  selRect.style.width  = Math.abs(x2-x1) + 'px';
+  selRect.style.height = Math.abs(y2-y1) + 'px';
+}
+
+/* ── REGION ANALYZE ── */
+function analyzeRegion() {
+  if (!origData || !dragStart || !dragEnd) return;
+  const x1=Math.min(dragStart.x,dragEnd.x), x2=Math.max(dragStart.x,dragEnd.x);
+  const y1=Math.min(dragStart.y,dragEnd.y), y2=Math.max(dragStart.y,dragEnd.y);
+  if (x2-x1 < 1 && y2-y1 < 1) { setStatus('Drag a larger region.', 'warn'); return; }
+
+  const d = origData.data;
+  let rs=0,gs=0,bs=0,count=0;
+  const STEP = Math.max(1, Math.floor(Math.sqrt((x2-x1+1)*(y2-y1+1)/1000)));
+  for (let y=y1; y<=y2; y+=STEP) for (let x=x1; x<=x2; x+=STEP) {
+    const i=(y*canvas.width+x)*4; rs+=d[i]; gs+=d[i+1]; bs+=d[i+2]; count++;
+  }
+  if (!count) return;
+  const avgR=Math.round(rs/count), avgG=Math.round(gs/count), avgB=Math.round(bs/count);
+  const avgHex = rgbToHex(avgR, avgG, avgB);
+  syncColor('src', avgHex);
+
+  let maxDist=0;
+  const hexSamples=[];
+  for (let y=y1; y<=y2; y+=STEP) for (let x=x1; x<=x2; x+=STEP) {
+    const i=(y*canvas.width+x)*4;
+    const dist=colorDist(d[i],d[i+1],d[i+2],avgR,avgG,avgB);
+    if (dist>maxDist) maxDist=dist;
+    if (hexSamples.length<28) hexSamples.push(rgbToHex(d[i],d[i+1],d[i+2]));
+  }
+
+  suggestedTol = Math.min(100, Math.ceil((maxDist / 4.41) * 1.2));
+  document.getElementById('v-count').textContent  = count.toLocaleString();
+  document.getElementById('v-max').textContent    = maxDist.toFixed(1);
+  document.getElementById('v-suggest').textContent= suggestedTol;
+
+  const row = document.getElementById('swatches-row');
+  row.innerHTML = '';
+  [...new Set(hexSamples)].slice(0,22).forEach(h => {
+    const s=document.createElement('div'); s.className='mini-swatch';
+    s.style.background=h; s.title=h; row.appendChild(s);
+  });
+
+  document.getElementById('variance-box').style.display = 'block';
+  setStatus('Region analyzed — source set to average ' + avgHex + '.', 'ok');
+}
+
+function applySuggested() {
+  if (suggestedTol===null) return;
+  document.getElementById('tolerance').value = suggestedTol;
+  document.getElementById('tol-val').textContent = suggestedTol;
+  setStatus('Tolerance set to ' + suggestedTol + '. Click Replace color when ready.', 'ok');
+}
+
+/* ── APPLY REPLACE ── */
+function applyReplace() {
+  if (!origData) { setStatus('Upload an image first.', 'warn'); return; }
+  const srcHex = '#' + document.getElementById('src-hex').value.replace('#','');
+  const dstHex = '#' + document.getElementById('dst-hex').value.replace('#','');
+  if (!isValidHex(srcHex)||!isValidHex(dstHex)) { setStatus('Enter valid hex codes for both colors.', 'warn'); return; }
+
+  const src = hexToRgb(srcHex), dst = hexToRgb(dstHex);
+  const tol = parseFloat(document.getElementById('tolerance').value) * 4.41;
+  const feather = document.getElementById('anti-alias').checked;
+
+  outCanvas.width = canvas.width; outCanvas.height = canvas.height;
+  const newData = new ImageData(new Uint8ClampedArray(origData.data), canvas.width, canvas.height);
+  const d = newData.data;
+
+  for (let i=0; i<d.length; i+=4) {
+    const dist = colorDist(d[i],d[i+1],d[i+2],src.r,src.g,src.b);
+    if (tol===0) {
+      if (dist<1) { d[i]=dst.r; d[i+1]=dst.g; d[i+2]=dst.b; }
+    } else if (dist<=tol) {
+      if (feather) {
+        const t   = 1 - Math.min(1, dist/tol);
+        const ease= t*t*(3-2*t);
+        d[i]  = Math.round(d[i]  + (dst.r-src.r)*ease);
+        d[i+1]= Math.round(d[i+1]+ (dst.g-src.g)*ease);
+        d[i+2]= Math.round(d[i+2]+ (dst.b-src.b)*ease);
+      } else { d[i]=dst.r; d[i+1]=dst.g; d[i+2]=dst.b; }
+    }
+  }
+
+  outCtx.putImageData(newData, 0, 0);
+  afterDataUrl = outCanvas.toDataURL('image/png');
+  imgEl.src = afterDataUrl;
+  viewingBefore = false;
+  outCanvas.toBlob(blob => { lastBlob = blob; }, 'image/png');
+  document.getElementById('download-btn').disabled = false;
+  document.getElementById('before-after').style.display = 'flex';
+  setPills(false);
+  setStatus('Done — press B to toggle before/after, or adjust and re-apply.', 'ok');
+}
+
+/* ── BEFORE / AFTER TOGGLE ── */
+function setPills(before) {
+  document.getElementById('pill-before').classList.toggle('active', before);
+  document.getElementById('pill-after').classList.toggle('active', !before);
+}
+function showBefore() {
+  if (!origDataUrl) return;
+  viewingBefore = true; imgEl.src = origDataUrl; setPills(true);
+}
+function showAfter() {
+  if (!afterDataUrl) return;
+  viewingBefore = false; imgEl.src = afterDataUrl; setPills(false);
+}
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space') { e.preventDefault(); return; }
+  if (e.key === 'b' || e.key === 'B') {
+    if (!afterDataUrl) return;
+    viewingBefore ? showAfter() : showBefore();
+  }
+});
+
+/* ── SIDEBAR RESIZE ── */
+const resizeHandle = document.getElementById('resize-handle');
+const mainLayout   = document.getElementById('main-layout');
+let isResizing = false;
+
+resizeHandle.addEventListener('mousedown', e => {
+  isResizing = true;
+  resizeHandle.classList.add('dragging');
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+  e.preventDefault();
+});
+document.addEventListener('mousemove', e => {
+  if (!isResizing) return;
+  const mainRect = mainLayout.getBoundingClientRect();
+  const newWidth = Math.min(700, Math.max(320, e.clientX - mainRect.left));
+  mainLayout.style.setProperty('--sidebar-w', newWidth + 'px');
+});
+document.addEventListener('mouseup', () => {
+  if (!isResizing) return;
+  isResizing = false;
+  resizeHandle.classList.remove('dragging');
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+});
+
+function downloadResult() {
+  if (!lastBlob) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(lastBlob);
+  a.download = 'swap-any-color-output.png';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+<script>
+(function() {
+  if (window.location.hostname !== 'buildthisnextonline.github.io') return;
+  var s = document.createElement('script');
+  s.dataset.goatcounter = 'https://btnonline-swap-any-color.goatcounter.com/count';
+  s.async = true;
+  s.src = 'https://gc.zgo.at/count.js';
+  document.body.appendChild(s);
+})();
+</script>
+</body>
+</html>
